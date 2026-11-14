@@ -1,3 +1,4 @@
+
 # Autonomous Line Follower
 
 **Control:** PD steering · **Platform:** Spark V / ATmega16 · **Sensors:** Three IR white-line sensors · **Actuation:** Differential-drive motors through L293D
@@ -19,15 +20,15 @@ The ATmega16 ADC polls the sensors. With `ADLAR=1`, the firmware uses 8-bit ADC 
 
 The steering error is defined as
 
-\[
+$$
 e_k=l_k-r_k
-\]
+$$
 
 and the PD correction uses the current error and its change:
 
-\[
-u*k=K_p e_k+K_d(e_k-e*{k-1}).
-\]
+$$
+u_k=K_p e_k+K_d(e_k-e_{k-1})
+$$
 
 The derivative term adds damping and reduces oscillation. The integral term was deliberately omitted to avoid integral windup on sharp curves.
 
@@ -48,9 +49,13 @@ The base speed is reduced as the magnitude of steering error increases. This slo
 - Stopwatch trials were used to check the 30-second target; it was consistently met.
 - Battery discharge reduced available motor torque for the same PWM command.
 
-### Lab result sheet
+### Controller gains
 
-\(K_p\) = 1; \(K_i\) = 0; \(K_d\) = 0.1
+| Parameter | Value |
+|:---|---:|
+| $K_p$ | 1 |
+| $K_i$ | 0 |
+| $K_d$ | 0.1 |
 
 ## Files
 
