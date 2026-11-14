@@ -19,7 +19,7 @@ PID, PD, LQR, energy shaping, Arduino Mega 2560, ATmega16, AVR C, Arduino C/C++,
 
 ## Repository contents
 
-Each experiment contains a self-contained README, relevant source code, data, result plots, and selected figures extracted from its report. Original source files, datasets, and supplied plots are copied byte-for-byte. The figure images extracted from reports are included as separate assets so GitHub can render them inline.
+Each experiment contains a self-contained README, relevant source code, data, result plots, and selected figures extracted from its report. Original source files, datasets, and supplied plots are copied. The figure images extracted from reports are included as separate assets so GitHub can render them inline.
 
 ## Academic attribution
 
