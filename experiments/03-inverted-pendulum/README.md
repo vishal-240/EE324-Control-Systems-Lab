@@ -74,13 +74,15 @@ $$
 
 The swing-up command is
 
+
 $$
 u_{\mathrm{sw}}=
-\operatorname{clip}_{[-12,12]}
+\mathrm{clip}_{[-12,12]}
 \left[
-7(-E)\operatorname{sgn}(\dot{\alpha}\cos\alpha)
+7(-E)\mathrm{sgn}(\dot{\alpha}\cos\alpha)
 \right]\ \mathrm{V}.
 $$
+
 
 | Combined-controller parameter | Value |
 |:---|---:|
