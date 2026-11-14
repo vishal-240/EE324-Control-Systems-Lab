@@ -29,10 +29,14 @@ $$
 
 The MATLAB design script uses
 
+
+The MATLAB design script uses
+
 $$
-Q=\operatorname{diag}(100,400,10,1),
+Q=\mathrm{diag}(100,400,10,1),
 \qquad R=1.
 $$
+
 
 The gain vector hard-coded in the supplied Arduino sketch is
 
