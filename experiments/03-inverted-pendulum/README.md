@@ -1,37 +1,110 @@
-# Inverted Pendulum: Swing-Up and LQR Balance
+# Rotary Inverted Pendulum — LQR Balance and Energy-Based Swing-Up
 
-## Overview
-This experiment implements upright stabilization of a rotary inverted pendulum using LQR state feedback, together with an energy-based swing-up controller.
+**Control:** LQR and energy-based swing-up · **Platform:** Arduino Mega 2560 · **Feedback:** AMT22 absolute encoders over SPI
 
-## Control approach
-The report defines the state as:
+## Objective
 
-`x = [theta, alpha, theta_dot, alpha_dot]^T`
+Implement an LQR balance controller and energy-based swing-up controller. The combined controller starts with the pendulum hanging down, swings it toward upright, transfers control to LQR near upright, and returns to swing-up if balance is lost.
 
-The balance controller uses the LQR law `u = -Kx`. Encoder measurements provide angular positions, and filtered finite differences estimate angular velocities.
+The stated objectives are \(|\alpha|\leq3^\circ\) for the pendulum and \(|\theta|\leq30^\circ\) for the arm. Here, \(\alpha=0\) denotes upright.
 
-The bonus implementation adds a swing-up mode based on an energy-shaping rule, with transitions between swing-up and balance modes.
+## State-space model and LQR
 
-## Reported implementation parameters
-- Arduino Mega
-- AMT22 encoders over SPI
-- Balance-only loop period: 5 ms (200 Hz)
-- Combined swing-up/balance loop period: 4 ms (250 Hz)
-- Motor command limit: ±12 V
-- LQR gain vector: `[-10, 155.667961, -5.985342, 20.612036]`
-- MATLAB design weights: `Q = diag(100, 400, 10, 1)`, `R = 1`
+The state vector is
 
-The balance-only sketch and combined swing-up/balance sketch use different loop periods; these are kept distinct here as in the report.
+\[
+x=\begin{bmatrix}\theta&\alpha&\dot{\theta}&\dot{\alpha}\end{bmatrix}^{T},
+\qquad \dot{x}=Ax+Bu.
+\]
 
-## Reported measurements and limitations
-The report records 420 telemetry samples over 41.918 s. The measured arm angle ranged from −14.33° to +31.33°, and the pendulum angle ranged from −3.49° to +4.09°. The report attributes brief excursions beyond the stated limits to an external disturbance during settling-time evaluation.
+The LQR control law is
+
+\[
+u=-Kx.
+\]
+
+The MATLAB design script uses
+
+\[
+Q=\operatorname{diag}(100,400,10,1),\qquad R=1.
+\]
+
+The gain vector hard-coded in the supplied Arduino sketch is
+
+\[
+K=\begin{bmatrix}-10&155.667961&-5.985342&20.612036\end{bmatrix}.
+\]
+
+Encoder readings provide angular positions. Angular velocities are estimated using finite differences followed by low-pass filtering.
+
+## Balance-only implementation
+
+| Parameter                            | Reported value |
+| ------------------------------------ | -------------: | ------ | ----------------- | ------ | ------------ |
+| Loop period / frequency              |  5 ms / 200 Hz |
+| Motor command limit                  |    \(\pm12\) V |
+| Motor deadband compensation          |            2 V |
+| Velocity low-pass filter coefficient |           0.35 |
+| LQR engagement threshold             |             \( | \alpha | <3^\circ\)        |
+| Firmware disengagement               |             \( | \alpha | >30^\circ\) or \( | \theta | >120^\circ\) |
+
+The balance-only sketch starts after the pendulum has been manually brought close to upright.
+
+## Automatic swing-up and balance
+
+The combined sketch has idle, swing-up, and balance modes. The report gives the normalized pendulum energy as
+
+\[
+E=\frac{1}{2}\left(\frac{\dot{\alpha}}{\omega_0}\right)^2+\cos(\alpha)-1,
+\qquad \omega_0=\frac{2\pi}{0.10\ \mathrm{s}}.
+\]
+
+The swing-up command is
+
+\[
+u*{\mathrm{sw}}=\operatorname{clip}*{[-12,12]}
+\left[7(-E)\operatorname{sgn}(\dot{\alpha}\cos\alpha)\right]\ \mathrm{V}.
+\]
+
+| Combined-controller parameter    |         Value |
+| -------------------------------- | ------------: | ------ | ----------- |
+| Loop period / frequency          | 4 ms / 250 Hz |
+| Swing-up energy period parameter |        0.10 s |
+| Swing-up gain                    |           7.0 |
+| Motor command saturation         |   \(\pm12\) V |
+| Swing-up to LQR capture          |            \( | \alpha | <5^\circ\)  |
+| LQR return to swing-up           |            \( | \alpha | >30^\circ\) |
+
+On capture, the implementation resets the arm-angle reference to zero while retaining measured angular velocities so LQR can brake residual motion. If the pendulum falls beyond the balance threshold, control switches back to swing-up.
+
+## Experimental results
+
+The recorded balance telemetry contains 420 samples over 41.918 s, with an approximately 100 ms logging interval.
+
+| Measured quantity          |          Minimum |          Maximum |
+| -------------------------- | ---------------: | ---------------: |
+| Arm angle, \(\theta\)      | \(-14.33^\circ\) | \(+31.33^\circ\) |
+| Pendulum angle, \(\alpha\) |  \(-3.49^\circ\) |  \(+4.09^\circ\) |
+
+The report attributes brief excursions beyond the specified limits to an external disturbance applied during settling-time evaluation. The recorded extrema nevertheless exceed the nominal \(\pm30^\circ\) arm and \(\pm3^\circ\) pendulum limits; these measurements are reported here rather than claiming every sample stayed within limits.
+
+### Measured arm and pendulum response from the report
+
+![Measured arm and pendulum angles with specification limits](assets/lqr-response-figure.png)
+
+### Supplied balance-response plot
+
+![Inverted pendulum LQR balance response](results/balance.png)
 
 ## Files
-- `code/Balance.ino.ino` — balance-only Arduino sketch
-- `code/swingUp.ino` — swing-up and balance sketch
-- `matlab/matlab.m`, `matlab/plotting.m` — MATLAB scripts
-- `data/pendulum_data.csv` — recorded telemetry
-- `results/` — supplied images
-- `reports/Fri_G4_E3_report.pdf` — group experiment report
 
-Original source, data, images, and report files are copied without editing their contents.
+- [`code/Balance.ino.ino`](code/Balance.ino.ino) — balance-only Arduino sketch
+- [`code/swingUp.ino`](code/swingUp.ino) — combined swing-up and balance sketch
+- [`matlab/matlab.m`](matlab/matlab.m) — MATLAB design script
+- [`matlab/plotting.m`](matlab/plotting.m) — plotting script
+- [`data/pendulum_data.csv`](data/pendulum_data.csv) — recorded telemetry
+- [`results/balance.png`](results/balance.png) — response plot
+
+## Takeaway
+
+The experiment combines state-space feedback with a nonlinear swing-up strategy. It demonstrates switching between control modes, encoder-based state estimation, filtered velocity feedback, voltage saturation, and the practical difference between controller design limits and measured disturbance response.

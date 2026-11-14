@@ -1,25 +1,62 @@
-# Line Follower
+# Autonomous Line Follower
 
-## Overview
-This experiment develops an autonomous line-following controller for the Spark V robot using its onboard infrared sensors.
+**Control:** PD steering · **Platform:** Spark V / ATmega16 · **Sensors:** Three IR white-line sensors · **Actuation:** Differential-drive motors through L293D
 
-## Control approach
-The group report describes a PD steering controller using the left and right sensor readings to calculate tracking error. The ATmega16 ADC reads the sensors, while Timer1 Fast PWM controls the differential-drive motors.
+## Objective
 
-Additional logic described in the report includes dynamic base-speed reduction as steering error increases, intersection handling, and line-loss recovery using the previous error direction. The report notes that the integral term was omitted.
+Design a controller for the Spark V robot to follow the supplied continuous track autonomously, with a stated completion target of 30 seconds.
 
-## Hardware and implementation
+## Hardware and sensor interfacing
+
 - Spark V robot based on ATmega16
-- Three IR line sensors
-- L293D motor driver
-- AVR C firmware
+- Three IR white-line sensors: left, centre, right
+- L293D motor driver and differential-drive motors
+- ISP programmer and track layout
 
-## Reported outcome
-The report states that the robot followed the supplied continuous track and met the 30-second design requirement. It also notes that battery discharge affected available motor torque for a given PWM command.
+The ATmega16 ADC polls the sensors. With `ADLAR=1`, the firmware uses 8-bit ADC readings to distinguish the black track from the white surface. Timer1 generates 8-bit Fast PWM at approximately 450 Hz; duty cycle controls motor speed.
+
+## Steering controller
+
+The steering error is defined as
+
+\[
+e_k=l_k-r_k
+\]
+
+and the PD correction uses the current error and its change:
+
+\[
+u*k=K_p e_k+K_d(e_k-e*{k-1}).
+\]
+
+The derivative term adds damping and reduces oscillation. The integral term was deliberately omitted to avoid integral windup on sharp curves.
+
+### Dynamic speed adjustment
+
+The base speed is reduced as the magnitude of steering error increases. This slows the robot before sharp turns and allows faster travel on straighter sections, reducing momentum-induced slipping.
+
+### Special-case behaviour
+
+- **Intersection:** If all sensors detect black, the robot drives straight at constant speed to clear the crosshair. The report notes this would fail at a T-junction, which was not present on the supplied track.
+- **Line lost:** If all sensors detect white, the robot uses the sign of the previous error to perform an asymmetric sweep and reacquire the line.
+
+## Experimental observations
+
+- Initial proportional-only control caused severe oscillations at high speed.
+- Adding derivative action provided the necessary damping.
+- Dynamic braking reduced momentum-induced slip on sharp turns.
+- Stopwatch trials were used to check the 30-second target; it was consistently met.
+- Battery discharge reduced available motor torque for the same PWM command.
+
+### Lab result sheet
+
+\(K_p\) = 1; \(K_i\) = 0; \(K_d\) = 0.1
 
 ## Files
-- `code/main.c` — main AVR firmware
-- `code/lcd.c` — LCD support code
-- `reports/lineFollower_report.pdf` — group experiment report
 
-Original source and report files are copied without editing their contents.
+- [`code/main.c`](code/main.c) — main ATmega16 firmware
+- [`code/lcd.c`](code/lcd.c) — LCD support code
+
+## Takeaway
+
+This experiment combines sensor calibration, ADC acquisition, timer-based PWM, and feedback control on a resource-constrained microcontroller. The key implementation decisions were PD steering, dynamic speed scaling, and explicit recovery behaviour for intersections and temporary line loss.
